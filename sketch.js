@@ -1,9 +1,7 @@
 
-let waves;
-let env;
-
-let base;
-let bloom;
+let waves, env, base, bloom;
+let video, detector, detections = [];
+let lastHandCenter = null;
 
 let oracleMessages = [
   "The river remembers.",
@@ -13,16 +11,9 @@ let oracleMessages = [
   "The current carries secrets."
 ];
 
-let currentMessage = "";
-let showMessage = false;
-let messageTimer = 0;
-let messageX = 0;
-let messageY = 0;
-
-let video;
-let detector;
-let detections = [];
-let lastHandCenter = null;
+let floatingTexts = [];
+let ripples = [];
+let fogLayer;
 
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
@@ -30,12 +21,14 @@ function setup() {
   base = createFramebuffer({ antialias: false, depth: false });
   bloom = createFramebuffer({ antialias: false, depth: false });
 
+  fogLayer = createGraphics(windowWidth, windowHeight);
+  fogLayer.noStroke();
+
   handPoseDetection.load(handPoseDetection.SupportedModels.MediaPipeHands, {
     runtime: 'tfjs',
     modelType: 'lite'
   }).then(model => {
     detector = model;
-    console.log("Hand tracking model loaded.");
   });
 
   video = createCapture(VIDEO);
@@ -62,7 +55,6 @@ function setup() {
   waves = baseMaterialShader().modify(() => {
     const bumpHeightScale = 40;
     const t = uniformFloat(() => millis());
-
     function mod289(x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
     function perm(x) { return mod289(((x * 34.0) + 1.0) * x); }
     function noise3(p) {
@@ -81,7 +73,6 @@ function setup() {
       let o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
       return smoothstep(0, 1, o4.y * d.y + o4.x * (1.0 - d.y));
     }
-
     const fractalNoise3 = (v1, v2, t) => {
       const s = 0.35;
       return noise3([v1, v2, t]) +
@@ -90,7 +81,6 @@ function setup() {
         s * s * s * noise3([v1 * 8, v2 * 8, t * 8]) +
         s * s * s * s * 0.5 * noise3([v1 * 16, v2 * 16, t * 16]);
     };
-
     getPixelInputs((inputs) => {
       const pos = inputs.texCoord * 150 + t * 0.0001;
       const bumpHeight = (x, y) => bumpHeightScale * fractalNoise3(x, y, t * 0.001);
@@ -110,6 +100,7 @@ function setup() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  fogLayer.resizeCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
@@ -152,48 +143,79 @@ function draw() {
   image(bloom, 0, 0);
   pop();
 
+  drawRipples();
+  drawFloatingText();
+  drawFog();
+
   if (detector && frameCount % 10 === 0) {
     detector.estimateHands(video.elt).then(hands => {
       detections = hands;
       if (hands.length > 0) {
         let finger = hands[0].keypoints[8];
-        messageX = map(finger.x, 0, video.width, -width / 2, width / 2);
-        messageY = map(finger.y, 0, video.height, -height / 2, height / 2);
-        triggerOracle();
+        let x = map(finger.x, 0, video.width, -width / 2, width / 2);
+        let y = map(finger.y, 0, video.height, -height / 2, height / 2);
+        triggerOracle(x, y);
 
         let cx = hands[0].keypoints[0].x;
         let cy = hands[0].keypoints[0].y;
         if (lastHandCenter) {
           let d = dist(cx, cy, lastHandCenter.x, lastHandCenter.y);
           if (d > 30) {
-            console.log("Wave ripple triggered");
-            // Hook ripple animation here
+            ripples.push({ x, y, r: 0, alpha: 255 });
           }
         }
         lastHandCenter = { x: cx, y: cy };
       }
     });
   }
-
-  if (showMessage) {
-    resetMatrix();
-    camera();
-    ortho();
-    push();
-    textFont('Georgia');
-    textAlign(CENTER, CENTER);
-    textSize(24);
-    fill(255);
-    text(currentMessage, messageX, messageY);
-    pop();
-
-    if (millis() - messageTimer > 4000) showMessage = false;
-  }
 }
 
-function triggerOracle() {
+function triggerOracle(x, y) {
   let i = floor(random(oracleMessages.length));
-  currentMessage = oracleMessages[i];
-  showMessage = true;
-  messageTimer = millis();
+  floatingTexts.push({ msg: oracleMessages[i], x, y, alpha: 255 });
+}
+
+function drawFloatingText() {
+  resetMatrix();
+  camera();
+  ortho();
+  textFont('Georgia');
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  for (let t of floatingTexts) {
+    fill(255, t.alpha);
+    text(t.msg, t.x, t.y);
+    t.y -= 0.4;
+    t.alpha -= 1.5;
+  }
+  floatingTexts = floatingTexts.filter(t => t.alpha > 0);
+}
+
+function drawRipples() {
+  resetMatrix();
+  camera();
+  ortho();
+  noFill();
+  stroke(200, 200, 255, 100);
+  strokeWeight(2);
+  for (let r of ripples) {
+    ellipse(r.x, r.y, r.r);
+    r.r += 2;
+    r.alpha -= 4;
+  }
+  ripples = ripples.filter(r => r.alpha > 0);
+}
+
+function drawFog() {
+  fogLayer.clear();
+  for (let i = 0; i < 100; i++) {
+    let x = noise(i * 0.1, frameCount * 0.001) * width;
+    let y = noise(i * 0.2, frameCount * 0.001) * height;
+    fogLayer.fill(255, 30);
+    fogLayer.ellipse(x, y, 80, 80);
+  }
+  resetMatrix();
+  camera();
+  ortho();
+  image(fogLayer, 0, 0);
 }
