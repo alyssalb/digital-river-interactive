@@ -18,7 +18,9 @@ let ripples = [];
 let fogLayer;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  let w = min(windowWidth, 1280);
+  let h = min(windowHeight, 720);
+  createCanvas(w, h, WEBGL);
 
   base = createGraphics(windowWidth, windowHeight, WEBGL);
   bloom = createGraphics(windowWidth, windowHeight, WEBGL);
@@ -38,7 +40,14 @@ handPoseDetection.createDetector(
   detector = det;
 });
 
+  let constraints = {
+    video: {
+      width: { ideal: 320 },
+      height: { ideal: 240 }
+    }
+  };
 
+  video = createCapture(constraints);
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
@@ -57,7 +66,7 @@ function draw() {
   drawFloatingText();
   drawFog();
 
-  if (detector && frameCount % 10 === 0) {
+  if (detector && frameCount % 20 === 0) {
     detector.estimateHands(video.elt).then(hands => {
       detections = hands;
       if (hands.length > 0) {
@@ -128,7 +137,7 @@ function drawRipples() {
 
 function drawFog() {
   fogLayer.clear();
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 40; i++) {
     let x = noise(i * 0.1, frameCount * 0.001) * width;
     let y = noise(i * 0.2, frameCount * 0.001) * height;
     fogLayer.fill(255, 30);
