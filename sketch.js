@@ -26,12 +26,18 @@ function setup() {
   fogLayer = createGraphics(windowWidth, windowHeight);
   fogLayer.noStroke();
 
-  handPoseDetection.load(handPoseDetection.SupportedModels.MediaPipeHands, {
-    runtime: 'tfjs',
-    modelType: 'lite'
-  }).then(model => {
-    detector = model;
-  });
+const modelConfig = {
+  runtime: 'tfjs',
+  modelType: 'lite'
+};
+
+handPoseDetection.createDetector(
+  handPoseDetection.SupportedModels.MediaPipeHands,
+  modelConfig
+).then(det => {
+  detector = det;
+});
+
 
   video = createCapture(VIDEO);
   video.size(width, height);
