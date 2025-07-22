@@ -1,10 +1,10 @@
+
 let waves;
 let env;
 
 let base;
 let bloom;
 
-// Oracle system
 let oracleMessages = [
   "The river remembers.",
   "Let go, and drift.",
@@ -16,6 +16,13 @@ let oracleMessages = [
 let currentMessage = "";
 let showMessage = false;
 let messageTimer = 0;
+let messageX = 0;
+let messageY = 0;
+
+let video;
+let detector;
+let detections = [];
+let lastHandCenter = null;
 
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
@@ -24,19 +31,17 @@ function setup() {
   bloom = createFramebuffer({ antialias: false, depth: false });
 
   handPoseDetection.load(handPoseDetection.SupportedModels.MediaPipeHands, {
-  runtime: 'tfjs',
-  modelType: 'lite'
-    }).then(model => {
-  detector = model;
-  console.log("Hand tracking model loaded.");
-    });
+    runtime: 'tfjs',
+    modelType: 'lite'
+  }).then(model => {
+    detector = model;
+    console.log("Hand tracking model loaded.");
+  });
 
   video = createCapture(VIDEO);
   video.size(width, height);
   video.hide();
 
-
-  // Background gradient
   let envBuf = createFramebuffer({ width: 400, height: 200 });
   envBuf.draw(() => {
     noStroke();
@@ -54,7 +59,6 @@ function setup() {
   env = envBuf.get();
   envBuf.remove();
 
-  // Shader
   waves = baseMaterialShader().modify(() => {
     const bumpHeightScale = 40;
     const t = uniformFloat(() => millis());
@@ -109,9 +113,7 @@ function windowResized() {
 }
 
 function draw() {
-  // Draw water surface with lighting
   base.begin();
-  // orbitControl(); ← Removed to stop user pan/zoom
   panorama(env);
   directionalLight(100, 100, 100, 0, 1, 0.15);
   pointLight(255, 255, 255, 0, -height, -5000);
@@ -149,18 +151,30 @@ function draw() {
   blendMode(ADD);
   image(bloom, 0, 0);
   pop();
-  
+
   if (detector && frameCount % 10 === 0) {
-  detector.estimateHands(video.elt).then(hands => {
-    detections = hands;
-    if (hands.length > 0) {
-      triggerOracle();  // This runs when a hand is seen
-    }
-  });
-}
+    detector.estimateHands(video.elt).then(hands => {
+      detections = hands;
+      if (hands.length > 0) {
+        let finger = hands[0].keypoints[8];
+        messageX = map(finger.x, 0, video.width, -width / 2, width / 2);
+        messageY = map(finger.y, 0, video.height, -height / 2, height / 2);
+        triggerOracle();
 
+        let cx = hands[0].keypoints[0].x;
+        let cy = hands[0].keypoints[0].y;
+        if (lastHandCenter) {
+          let d = dist(cx, cy, lastHandCenter.x, lastHandCenter.y);
+          if (d > 30) {
+            console.log("Wave ripple triggered");
+            // Hook ripple animation here
+          }
+        }
+        lastHandCenter = { x: cx, y: cy };
+      }
+    });
+  }
 
-  // Oracle Message Overlay (2D mode)
   if (showMessage) {
     resetMatrix();
     camera();
@@ -170,19 +184,11 @@ function draw() {
     textAlign(CENTER, CENTER);
     textSize(24);
     fill(255);
-    text(currentMessage, 0, 0);
+    text(currentMessage, messageX, messageY);
     pop();
 
     if (millis() - messageTimer > 4000) showMessage = false;
   }
-}
-
-function touchStarted() {
-  let i = floor(random(oracleMessages.length));
-  currentMessage = oracleMessages[i];
-  showMessage = true;
-  messageTimer = millis();
-  return false;
 }
 
 function triggerOracle() {
@@ -191,4 +197,3 @@ function triggerOracle() {
   showMessage = true;
   messageTimer = millis();
 }
-
