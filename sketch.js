@@ -23,6 +23,19 @@ function setup() {
   base = createFramebuffer({ antialias: false, depth: false });
   bloom = createFramebuffer({ antialias: false, depth: false });
 
+  handPoseDetection.load(handPoseDetection.SupportedModels.MediaPipeHands, {
+  runtime: 'tfjs',
+  modelType: 'lite'
+    }).then(model => {
+  detector = model;
+  console.log("Hand tracking model loaded.");
+    });
+
+  video = createCapture(VIDEO);
+  video.size(width, height);
+  video.hide();
+
+
   // Background gradient
   let envBuf = createFramebuffer({ width: 400, height: 200 });
   envBuf.draw(() => {
@@ -136,6 +149,16 @@ function draw() {
   blendMode(ADD);
   image(bloom, 0, 0);
   pop();
+  
+  if (detector && frameCount % 10 === 0) {
+  detector.estimateHands(video.elt).then(hands => {
+    detections = hands;
+    if (hands.length > 0) {
+      triggerOracle();  // This runs when a hand is seen
+    }
+  });
+}
+
 
   // Oracle Message Overlay (2D mode)
   if (showMessage) {
@@ -161,3 +184,11 @@ function touchStarted() {
   messageTimer = millis();
   return false;
 }
+
+function triggerOracle() {
+  let i = floor(random(oracleMessages.length));
+  currentMessage = oracleMessages[i];
+  showMessage = true;
+  messageTimer = millis();
+}
+
