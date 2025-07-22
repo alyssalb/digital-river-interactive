@@ -1,40 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Digital River Oracle</title>
-
-  <!-- p5.js Core -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
-
-  <!-- (Optional) TensorFlow.js -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script> -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script> -->
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css" />
-
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #000;
-    }
-    canvas {
-      display: block;
-    }
-  </style>
-</head>
-
-<body>
-  <main>
-    <!-- p5 will inject the canvas here -->
-  </main>
-
-  <!-- Your p5.js sketch -->
-  <script src="sketch.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Digital River Oracle</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.dom.min.js"></script>
+    <!-- TensorFlow + MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+  </head>
+  <body>
+    <main></main>
+    <script src="sketch.js"></script>
+  </body>
 </html>
