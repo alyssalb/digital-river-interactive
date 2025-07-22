@@ -1,3 +1,5 @@
+console.log("handPoseDetection:", handPoseDetection);
+
 
 let waves, env, base, bloom;
 let video, detector, detections = [];
